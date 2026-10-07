@@ -1,0 +1,8 @@
+column,missing_count,missing_percentage,dtype
+pickup,0,0.0,str
+delivery,0,0.0,str
+distance,0,0.0,int64
+equipment,0,0.0,str
+weight,0,0.0,int64
+date,0,0.0,str
+predicted_rate,31,100.0,float64

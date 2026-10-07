@@ -1,0 +1,15 @@
+column,missing_count,missing_percentage,dtype
+load_id,0,0.0,str
+pickup,0,0.0,str
+delivery,0,0.0,str
+pickup_lat,0,0.0,float64
+pickup_lon,0,0.0,float64
+delivery_lat,0,0.0,float64
+delivery_lon,0,0.0,float64
+distance,0,0.0,float64
+equipment,0,0.0,str
+weight,300,0.625,float64
+date,0,0.0,str
+market_index,374,0.7792,float64
+quote_signal,0,0.0,float64
+posted_rate,0,0.0,float64
