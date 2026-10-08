@@ -37,3 +37,15 @@ dist/
 .env
 .env.*
 !.env.example
+
+# More secrets / credentials (never commit)
+*.key
+*.pem
+secrets.json
+
+# Production runtime output (generated; the folder skeletons are kept via .gitkeep)
+monitoring/predictions/*.jsonl
+monitoring/predictions/summary.json
+monitoring/drift/*.json
+monitoring/performance/*.json
+monitoring/retraining/*.json

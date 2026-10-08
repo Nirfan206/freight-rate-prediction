@@ -148,6 +148,40 @@ order = ["data_audit", "eda", "data_cleaning", "features", "validation", "experi
 tech = dict(tree=tree, reqs=P("requirements.txt").read_text().split(), cmds=[f"python src/{s}.py" for s in order if P("src", s + ".py").is_file()] +
             ["python score.py --predictions validation_predictions.csv --december-predictions outputs/predictions/december_predictions.csv"], meta={k: v for k, v in meta.items() if k != "features"})
 
+
+# ---- production ML (additive; reads JSON/JSONL only, never unpickles a model) -------------------
+sys.path.append(str(ROOT / "src"))
+try:
+    from production.config import get_settings
+    from production.model_registry import list_models, read_metadata, read_production_record
+    from production.monitoring import summarize_predictions
+    from production.retraining import read_status
+
+    def _jload(path):
+        try:
+            return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
+        except Exception:
+            return None
+
+    _s = get_settings()
+    _rec = read_production_record(_s.registry_path)
+    _meta = read_metadata(_s.registry_path, _rec["production_version"]) if _rec else None
+    _skip = ("feature_names", "reference_profile")
+    prod = dict(
+        registry=bool(_rec),
+        record={k: v for k, v in (_rec or {}).items() if k != "history"},
+        history=(_rec or {}).get("history", []),
+        model=None if _meta is None else {k: v for k, v in _meta.items() if k not in _skip},
+        versions=list_models(_s.registry_path),
+        predictions=summarize_predictions(_s.prediction_log_path),
+        drift=_jload(_s.drift_dir / "drift_report.json"),
+        performance=_jload(_s.performance_dir / "performance_report.json"),
+        retraining=read_status(_s.retraining_dir),
+        tuning=recs(rd("outputs", "experiments", "production_tuning.csv")),
+    )
+except Exception as exc:  # production layer absent or broken: the assessment dashboard must still build
+    prod = dict(registry=False, error=str(exc))
+
 pt = dec.copy() if dec is not None else None
 D = dict(
     k=dict(dev=len(tr), pre=len(pre), holdout=int(err.rows), assess=len(va), feats=meta["feature_count"], raw_cols=len(tr.columns), mae=err.MAE, rmse=err.RMSE, r2=fin.R2, mape=err.MAPE_percent,
@@ -160,7 +194,7 @@ D = dict(
     pred=dict(cols=["id", "pickup", "delivery", "equipment", "distance", "weight", "date", "rate"],
               rows=json.loads(pd.DataFrame({"id": va.load_id, "p": va.pickup, "d": va.delivery, "e": va.equipment, "dist": va.distance, "w": va.weight,
                                             "dt": va.date.dt.strftime("%Y-%m-%d"), "r": (vp.predicted_rate.round(2) if vp is not None else np.nan)}).to_json(orient="values"))),
-    dec=dict(rows=recs(pt), **dec_info), checks=checks, scorer=scorer, tech=tech, eda=eda, missing=missing,
+    dec=dict(rows=recs(pt), **dec_info), prod=prod, checks=checks, scorer=scorer, tech=tech, eda=eda, missing=missing,
     pre_dates=dict(start=str(pre.date.min().date()), end=str(pre.date.max().date())))
 
 tpl = (HERE / "template.html").read_text(encoding="utf-8")

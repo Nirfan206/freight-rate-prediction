@@ -1,0 +1,2 @@
+# NOTE: Docker only honours the .dockerignore at the build-context root (../.dockerignore).
+# This copy exists for discoverability; keep it identical to the root file.

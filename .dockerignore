@@ -1,0 +1,25 @@
+# Docker reads THIS file (build context = repo root).
+.git
+.github
+.venv*
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets.json
+data
+outputs
+reports
+dashboard
+scorer_results
+artifacts
+tests
+docs
+monitoring/predictions/*.jsonl
+*.docx
+*.pdf

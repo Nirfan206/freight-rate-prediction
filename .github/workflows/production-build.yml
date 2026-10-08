@@ -1,0 +1,42 @@
+name: production-build
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: pytest -q
+
+  docker:
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -f docker/Dockerfile -t freight-rate-api:ci .
+      - name: Run container
+        run: docker run -d --name api -p 8000:8000 freight-rate-api:ci
+      - name: API smoke check
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:8000/health && break
+            sleep 2
+          done
+          curl -fsS http://localhost:8000/health | grep '"model_loaded":true'
+          curl -fsS http://localhost:8000/model/info
+          curl -fsS -X POST http://localhost:8000/predict -H 'Content-Type: application/json' \
+            -d '{"load_id":"CI_1","date":"2025-11-15","distance":850,"weight":32000,"pickup_lat":40.7128,"pickup_lon":-74.0060,"delivery_lat":41.8781,"delivery_lon":-87.6298,"equipment":"Dry Van","market_index":1.05,"quote_signal":2.0}'
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs api
+      # Deliberately NO deploy step and no cloud credentials.
